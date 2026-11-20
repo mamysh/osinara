@@ -20,6 +20,8 @@ import {
   TELEGRAM_FILE_DOWNLOAD_ATTEMPTS,
   TELEGRAM_VOICE_MAX_BYTES,
 } from "../config.js";
+import { transcribeWithDeepgram } from "./deepgram-transcription.js";
+import { modelProviderConfig } from "./model-provider-config.js";
 import { AppError } from "./app-error.js";
 import { voiceTranscriptionModel } from "./model-registry.js";
 import { telegramFetchWithSignal, withTelegramFileAttempts } from "./telegram-file-download-attempts.js";
@@ -191,6 +193,12 @@ export const transcribeTelegramVoice = createTelegramVoiceTranscriber({
   },
   maxBytes: TELEGRAM_VOICE_MAX_BYTES,
   transcribe: async (audio, signal) => {
+    const abortSignal = AbortSignal.any([AbortSignal.timeout(GROQ_TRANSCRIPTION_TIMEOUT_MS), ...(signal ? [signal] : [])]);
+    const deepgramApiKey = process.env.DEEPGRAM_API_KEY?.trim();
+    if (modelProviderConfig.voice.enabled && deepgramApiKey) {
+      const mediaType = startsWith(audio, OGG_SIGNATURE) ? "audio/ogg" : VIDEO_NOTE_MEDIA_TYPE;
+      return transcribeWithDeepgram({ apiKey: deepgramApiKey, audio, mediaType, signal: abortSignal });
+    }
     if (voiceTranscriptionModel === null) {
       throw new AppError(
         "AGENT_VOICE_NOT_CONFIGURED",
@@ -198,7 +206,7 @@ export const transcribeTelegramVoice = createTelegramVoiceTranscriber({
       );
     }
     const result = await transcribe({
-      abortSignal: AbortSignal.any([AbortSignal.timeout(GROQ_TRANSCRIPTION_TIMEOUT_MS), ...(signal ? [signal] : [])]),
+      abortSignal,
       audio,
       maxRetries: 0,
       model: voiceTranscriptionModel,

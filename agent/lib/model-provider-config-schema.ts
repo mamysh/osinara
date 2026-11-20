@@ -21,6 +21,7 @@ const modelProviderIdSchema = z.enum([
   "neuraldeep",
   "opencode-go",
   "openrouter",
+  "ollama",
 ]);
 const reasoningEffortSchema = z.enum(["max", "xhigh", "high", "medium", "low", "minimal"]);
 const maxOutputTokensSchema = z.number().int().positive().max(MODEL_PROVIDER_MAX_OUTPUT_TOKENS);
@@ -100,6 +101,7 @@ const modelProviderConfigSchema = z.object({
     neuraldeep: "https://api.neuraldeep.ru/v1",
     "opencode-go": "https://opencode.ai/zen/go/v1",
     openrouter: "https://openrouter.ai/api/v1",
+    ollama: "https://ollama.com/v1",
   }[config.provider];
   if (transport.baseUrl !== expectedBaseUrl) {
     context.addIssue({
@@ -145,6 +147,11 @@ const modelProviderConfigSchema = z.object({
       });
     }
   }
+  if (config.provider === "ollama" && (
+    transport.protocol !== "openai-chat-completions" ||
+    transport.providerName !== "ollama" ||
+    transport.reasoning !== null
+  )) context.addIssue({ code: "custom", message: "Ollama Cloud transport mismatch", path: ["agent", "transport"] });
   if (config.provider === "openrouter" && (
     transport.protocol !== "openai-chat-completions" ||
     transport.providerName !== "openrouter" ||
@@ -168,17 +175,17 @@ export function parseModelProviderConfig(value: unknown): ModelProviderConfig {
   return parsed.data;
 }
 
-/** Voice is optional, but an enabled Groq route must have its own non-blank startup credential. */
+/** Voice is optional, but an enabled voice route must have its own non-blank startup credential. */
 export function validateModelProviderRuntimeEnvironment(
   configValue: unknown,
   environment: Readonly<Record<string, string | undefined>>,
 ): { GROQ_API_KEY: string | undefined } {
   const config = parseModelProviderConfig(configValue);
   const groqApiKey = environment.GROQ_API_KEY;
-  if (config.voice.enabled && (groqApiKey === undefined || groqApiKey.trim().length === 0)) {
+  if (config.voice.enabled && !environment.DEEPGRAM_API_KEY?.trim() && !groqApiKey?.trim()) {
     throw new AppError(
       "AGENT_GROQ_API_KEY_REQUIRED",
-      "Для включённого распознавания голосовых сообщений задайте GROQ_API_KEY",
+      "Для включённого распознавания голосовых сообщений задайте DEEPGRAM_API_KEY или GROQ_API_KEY",
     );
   }
   return { GROQ_API_KEY: groqApiKey };

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 4,
+  "provider": "ollama",
+  "agent": {
+    "transport": {
+      "protocol": "openai-chat-completions",
+      "baseUrl": "https://ollama.com/v1",
+      "providerName": "ollama",
+      "reasoning": null
+    },
+    "models": {
+      "primary": {
+        "id": "deepseek-v4.1-flash:cloud",
+        "contextWindowTokens": 65536,
+        "maxOutputTokens": 8192
+      },
+      "vision": { "supportsImageInput": false }
+    }
+  },
+  "voice": {
+    "enabled": true,
+    "transcriptionModelId": "whisper-large-v3-turbo"
+  }
+}

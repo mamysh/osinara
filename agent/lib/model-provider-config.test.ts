@@ -169,9 +169,9 @@ describe("parseModelProviderConfig", () => {
     })).toThrow("AGENT_MODEL_PROVIDER_CONFIG_INVALID");
   });
 
-  it("requires GROQ_API_KEY at startup only when voice is enabled", () => {
+  it("requires a transcription key at startup only when voice is enabled", () => {
     expect(() => validateModelProviderRuntimeEnvironment(validConfig, {})).toThrow(
-      "AGENT_GROQ_API_KEY_REQUIRED: Для включённого распознавания голосовых сообщений задайте GROQ_API_KEY",
+      "AGENT_GROQ_API_KEY_REQUIRED: Для включённого распознавания голосовых сообщений задайте DEEPGRAM_API_KEY или GROQ_API_KEY",
     );
     expect(() => validateModelProviderRuntimeEnvironment(validConfig, {
       GROQ_API_KEY: "   ",
@@ -179,6 +179,9 @@ describe("parseModelProviderConfig", () => {
     expect(validateModelProviderRuntimeEnvironment(validConfig, {
       GROQ_API_KEY: "groq-secret",
     })).toEqual({ GROQ_API_KEY: "groq-secret" });
+    expect(validateModelProviderRuntimeEnvironment(validConfig, {
+      DEEPGRAM_API_KEY: "test-deepgram",
+    })).toEqual({ GROQ_API_KEY: undefined });
     expect(validateModelProviderRuntimeEnvironment({
       ...validConfig,
       voice: { enabled: false },

@@ -33,11 +33,16 @@ export async function searchPublicWeb(
   const parsed = searchInput.safeParse(input);
   if (!parsed.success) throw new AppError("AGENT_WEB_SEARCH_INPUT_INVALID", "Укажите поисковый запрос и от 1 до 10 результатов");
   const id = crypto.randomUUID();
+  const exaApiKey = process.env.EXA_API_KEY?.trim();
   let status: number | undefined;
   try {
     const response = await fetchImplementation(SEARCH_ENDPOINT, {
       method: "POST",
-      headers: { accept: "application/json, text/event-stream", "content-type": "application/json" },
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+        ...(exaApiKey ? { "x-api-key": exaApiKey } : {}),
+      },
       body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: {
         name: "web_search_exa", arguments: parsed.data,
       } }),
